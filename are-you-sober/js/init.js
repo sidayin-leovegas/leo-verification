@@ -114,34 +114,63 @@ function loadRive(docType) {
     });
 }
 
+// --- Refined Detection Thresholds ---
+const FLAT_LIMIT = 8;
+const SMOOTHING_FACTOR = 0.15; // Slightly faster response for state changes
+let smoothedMovement = 0;
+
+const TABLE_STILLNESS = 0.02;  // Absolute floor (Table)
+const HAND_STILLNESS_MIN = 0.05; // Minimum tremor for a human hand
+const HAND_STILLNESS_MAX = 0.30; // Maximum sway allowed for "Sober" check
+
+let stillnessBuffer = 0;
+
 function handleSensors(event) {
     if (!isTrueMobile() || currentState === "verification" || currentState === "success") return;
 
     const acc = event.acceleration;
+    // Calculate raw magnitude
     const rawMovement = Math.sqrt(acc.x**2 + acc.y**2 + acc.z**2);
     
-    // Apply Low-Pass Filter
+    // Apply smoothing to filter out quick accidental bumps
     smoothedMovement = (smoothedMovement * (1 - SMOOTHING_FACTOR)) + (rawMovement * SMOOTHING_FACTOR);
 
     window.ondeviceorientation = (orient) => {
         const isFlat = Math.abs(orient.beta) < FLAT_LIMIT && Math.abs(orient.gamma) < FLAT_LIMIT;
 
         if (isFlat) {
-            if (smoothedMovement < SURFACE_STILLNESS) {
+            // CASE 1: ON A TABLE
+            // If movement is below the biological tremor floor (0.05)
+            if (smoothedMovement < HAND_STILLNESS_MIN) {
                 stillnessBuffer++;
-                if (stillnessBuffer > 20) {
+                // If it stays "dead still" for ~15 frames (approx 250ms)
+                if (stillnessBuffer > 15) {
                     pauseTimer();
                     updateUI("error");
                 }
-            } else if (smoothedMovement > SWAY_THRESHOLD) {
-                stillnessBuffer = 0;
-                if (currentState === "error" || currentState === "balance") updateUI("keeping_still");
+            } 
+            // CASE 2: IN A STEADY HAND
+            // Movement is between the table floor and the maximum allowed sway
+            else if (smoothedMovement >= HAND_STILLNESS_MIN && smoothedMovement <= HAND_STILLNESS_MAX) {
+                stillnessBuffer = 0; // Reset table detection
+                if (currentState === "error" || currentState === "balance") {
+                    updateUI("keeping_still");
+                }
                 if (!successTriggered) startTimer();
             }
+            // CASE 3: TOO MUCH MOVEMENT
+            else {
+                stillnessBuffer = 0;
+                pauseTimer();
+                if (currentState === "keeping_still") updateUI("balance");
+            }
         } else {
+            // NOT FLAT
             stillnessBuffer = 0;
             pauseTimer();
-            if (currentState === "error" || currentState === "keeping_still") updateUI("balance");
+            if (currentState === "error" || currentState === "keeping_still") {
+                updateUI("balance");
+            }
         }
     };
 }
