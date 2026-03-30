@@ -123,3 +123,13 @@ body {
 #main-btn:active {
     transform: scale(0.98);
 }
+
+#version-tag {
+    width: 100%;
+    text-align: center;
+    font-family: var(--font);
+    font-size: 11px;
+    color: #333333; /* Requested color */
+    margin-top: 12px;
+    opacity: 0.8;
+}
