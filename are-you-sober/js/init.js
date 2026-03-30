@@ -12,14 +12,24 @@ let timerInterval = null;
 let stillnessBuffer = 0;
 let successTriggered = false;
 
+// Detection Thresholds
 const FLAT_LIMIT = 5;
 const SURFACE_STILLNESS = 0.05;
 const HAND_TREMOR = 0.15;
+
+/** * Desktop Detection 
+ */
+const isMobile = () => {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+};
 
 const getHex = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const toRive = (v) => parseInt(`0xFF${getHex(v).replace('#', '')}`, 16);
 
 function updateUI(state) {
+    // If desktop, override state to desktop
+    if (!isMobile()) state = "desktop";
+    
     if (currentState === state && state !== "balance") return;
     currentState = state;
     
@@ -29,6 +39,12 @@ function updateUI(state) {
     mainBtn.style.display = "none";
 
     switch(state) {
+        case "desktop":
+            uiTitle.style.display = "none";
+            uiBody.innerText = "Please use a mobile device for test this feature";
+            mainBtn.style.display = "none";
+            break;
+
         case "verification":
             uiTitle.innerText = "How are we feeling this evening?";
             uiBody.innerText = "We want to sure you have a sober and safe experience fore continuing with your deposit.";
@@ -80,28 +96,30 @@ function loadRive(docType) {
                 r.bindViewModelInstance(vmi);
                 vmi.string('document_type').value = rivType;
 
-                // cocktail_color set to primary-500
                 const cocktail = vmi.color("cocktail_color");
                 if (cocktail) cocktail.value = toRive('--primary-500');
 
-                // Dynamic Gradients
                 const tCol = (rivType === "error") ? toRive('--error-dark') : (rivType === "success") ? toRive('--success-dark') : toRive('--primary-400');
                 const bCol = (rivType === "error") ? toRive('--error-mid') : (rivType === "success") ? toRive('--success-mid') : toRive('--primary-300');
 
                 vmi.color("gradient_top").value = tCol;
                 vmi.color("gradient_bottom").value = bCol;
                 
-                // Specific state overrides
+                // Set explicit state colors
                 const eT = vmi.color("gradient_top_error"); if(eT) eT.value = toRive('--error-dark');
                 const eB = vmi.color("gradient_bottom_error"); if(eB) eB.value = toRive('--error-mid');
                 const sT = vmi.color("gradient_top_success"); if(sT) sT.value = toRive('--success-dark');
                 const sB = vmi.color("gradient_bottom_success"); if(sB) sB.value = toRive('--success-mid');
+
+                r.play('State Machine 1');
             }
         }
     });
 }
 
 function handleSensors(event) {
+    // Stop all sensor logic if on desktop
+    if (!isMobile()) return;
     if (currentState === "verification" || currentState === "success") return;
 
     const acc = event.acceleration;
@@ -119,17 +137,13 @@ function handleSensors(event) {
                 }
             } else if (movement > HAND_TREMOR) {
                 stillnessBuffer = 0;
-                if (currentState === "error" || currentState === "balance") {
-                    updateUI("keeping_still");
-                }
+                if (currentState === "error" || currentState === "balance") updateUI("keeping_still");
                 if (!successTriggered) startTimer();
             }
         } else {
             stillnessBuffer = 0;
             pauseTimer();
-            if (currentState === "error" || currentState === "keeping_still") {
-                updateUI("balance");
-            }
+            if (currentState === "error" || currentState === "keeping_still") updateUI("balance");
         }
     };
 }
@@ -137,7 +151,7 @@ function handleSensors(event) {
 function startTimer() {
     if (timerInterval || successTriggered) return;
     timerInterval = setInterval(() => {
-        progress += 0.5; // 20 seconds
+        progress += 0.5; 
         progressBar.style.width = progress + '%';
         if (progress >= 100) {
             clearInterval(timerInterval);
@@ -153,12 +167,10 @@ function pauseTimer() {
         clearInterval(timerInterval);
         timerInterval = null;
     }
-    // We don't reset progress to 0 here so users don't lose all 20s of progress 
-    // if they accidentally wobble, but you can set progress = 0 if you want it strict.
 }
 
 mainBtn.addEventListener('click', () => {
-    if (currentState === "initial" || currentState === "verification") {
+    if (currentState === "verification") {
         if (typeof DeviceMotionEvent.requestPermission === 'function') {
             DeviceMotionEvent.requestPermission().then(permission => {
                 if (permission === 'granted') {
@@ -170,9 +182,6 @@ mainBtn.addEventListener('click', () => {
             window.addEventListener('devicemotion', handleSensors);
             updateUI("balance");
         }
-    } else if (currentState === "success") {
-        // Handle actual deposit logic here
-        console.log("Deposit sequence initiated.");
     }
 });
 
