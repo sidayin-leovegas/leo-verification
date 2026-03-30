@@ -10,6 +10,7 @@ let currentState = "initial";
 let progress = 0;
 let timerInterval = null;
 let stillnessBuffer = 0;
+let successTriggered = false;
 
 const FLAT_LIMIT = 5;
 const SURFACE_STILLNESS = 0.05;
@@ -19,9 +20,14 @@ const getHex = (v) => getComputedStyle(document.documentElement).getPropertyValu
 const toRive = (v) => parseInt(`0xFF${getHex(v).replace('#', '')}`, 16);
 
 function updateUI(state) {
+    if (currentState === state && state !== "balance") return;
     currentState = state;
-    loaderContainer.style.display = "none";
     
+    // Default visibility resets
+    loaderContainer.style.display = "none";
+    uiTitle.style.display = "block";
+    mainBtn.style.display = "none";
+
     switch(state) {
         case "verification":
             uiTitle.innerText = "How are we feeling this evening?";
@@ -33,7 +39,6 @@ function updateUI(state) {
         case "balance":
             uiTitle.style.display = "none";
             uiBody.innerHTML = "<b>Please hold your mobile device flat in your hand for 20 seconds.</b>";
-            mainBtn.style.display = "none";
             break;
             
         case "keeping_still":
@@ -45,11 +50,9 @@ function updateUI(state) {
         case "error":
             uiTitle.style.display = "none";
             uiBody.innerHTML = "<b>Do not put your device down on a table or surface. Pick up your device to continue.</b>";
-            mainBtn.style.display = "none";
             break;
             
         case "success":
-            uiTitle.style.display = "block";
             uiTitle.innerText = "Success!";
             uiBody.innerText = "Check completed. Please continue with your deposit and have a wonderful evening!";
             mainBtn.innerText = "DEPOSIT";
@@ -62,7 +65,6 @@ function updateUI(state) {
 function loadRive(docType) {
     if (r) r.cleanup();
     
-    // Mapping internal states to Rive document_type values
     let rivType = docType;
     if (docType === "initial") rivType = "verification";
 
@@ -82,16 +84,18 @@ function loadRive(docType) {
                 const cocktail = vmi.color("cocktail_color");
                 if (cocktail) cocktail.value = toRive('--primary-500');
 
-                // State specific colors
+                // Dynamic Gradients
                 const tCol = (rivType === "error") ? toRive('--error-dark') : (rivType === "success") ? toRive('--success-dark') : toRive('--primary-400');
                 const bCol = (rivType === "error") ? toRive('--error-mid') : (rivType === "success") ? toRive('--success-mid') : toRive('--primary-300');
 
                 vmi.color("gradient_top").value = tCol;
                 vmi.color("gradient_bottom").value = bCol;
                 
-                // State specifics
+                // Specific state overrides
                 const eT = vmi.color("gradient_top_error"); if(eT) eT.value = toRive('--error-dark');
+                const eB = vmi.color("gradient_bottom_error"); if(eB) eB.value = toRive('--error-mid');
                 const sT = vmi.color("gradient_top_success"); if(sT) sT.value = toRive('--success-dark');
+                const sB = vmi.color("gradient_bottom_success"); if(sB) sB.value = toRive('--success-mid');
             }
         }
     });
@@ -110,45 +114,51 @@ function handleSensors(event) {
             if (movement < SURFACE_STILLNESS) {
                 stillnessBuffer++;
                 if (stillnessBuffer > 15 && currentState !== "error") {
-                    stopTimer();
+                    pauseTimer();
                     updateUI("error");
                 }
             } else if (movement > HAND_TREMOR) {
                 stillnessBuffer = 0;
-                if (currentState === "error" || currentState === "balance") updateUI("keeping_still");
-                startTimer();
+                if (currentState === "error" || currentState === "balance") {
+                    updateUI("keeping_still");
+                }
+                if (!successTriggered) startTimer();
             }
         } else {
             stillnessBuffer = 0;
-            stopTimer();
-            if (currentState === "error") updateUI("balance");
+            pauseTimer();
+            if (currentState === "error" || currentState === "keeping_still") {
+                updateUI("balance");
+            }
         }
     };
 }
 
 function startTimer() {
-    if (timerInterval) return;
+    if (timerInterval || successTriggered) return;
     timerInterval = setInterval(() => {
-        progress += 0.5; // Adjusted for 20 seconds (100 / (20 * 10))
+        progress += 0.5; // 20 seconds
         progressBar.style.width = progress + '%';
         if (progress >= 100) {
             clearInterval(timerInterval);
+            timerInterval = null;
+            successTriggered = true;
             updateUI("success");
         }
     }, 100);
 }
 
-function stopTimer() {
-    clearInterval(timerInterval);
-    timerInterval = null;
-    if (currentState === "keeping_still") updateUI("balance");
-    progress = 0;
-    progressBar.style.width = '0%';
+function pauseTimer() {
+    if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+    }
+    // We don't reset progress to 0 here so users don't lose all 20s of progress 
+    // if they accidentally wobble, but you can set progress = 0 if you want it strict.
 }
 
 mainBtn.addEventListener('click', () => {
     if (currentState === "initial" || currentState === "verification") {
-        // Request Permissions & Start
         if (typeof DeviceMotionEvent.requestPermission === 'function') {
             DeviceMotionEvent.requestPermission().then(permission => {
                 if (permission === 'granted') {
@@ -161,7 +171,8 @@ mainBtn.addEventListener('click', () => {
             updateUI("balance");
         }
     } else if (currentState === "success") {
-        alert("Redirecting to Deposit...");
+        // Handle actual deposit logic here
+        console.log("Deposit sequence initiated.");
     }
 });
 
