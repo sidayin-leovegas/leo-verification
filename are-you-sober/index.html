@@ -8,19 +8,23 @@
     <script src="https://unpkg.com/@rive-app/canvas@latest/rive.js"></script>
 </head>
 <body>
-    <div id="sensor-overlay">
-        <button id="start-btn">Start Verification Experience 5</button>
-    </div>
-    
-    <div class="container">
-        <h6>Device Verification</h6>
+     <div class="container">
         <div class="top-animation">
             <canvas id="mainCanvas"></canvas>
         </div>
-        <div id="loader-container" style="display: none; width: 100%; height: 6px; background: #e0e0e0; border-radius: 10px; margin-top: 10px; overflow: hidden;">
-            <div id="progress-bar" style="width: 0%; height: 100%; background: var(--success-mid); transition: width 0.1s linear;"></div>
+    
+        <div id="content-area">
+            <h2 id="ui-title">How are we feeling this evening?</h2>
+            <p id="ui-body">We want to sure you have a sober and safe experience fore continuing with your deposit.</p>
+            
+            <div id="loader-container" style="display: none;">
+                <div id="progress-bar"></div>
+            </div>
+    
+            <button id="main-btn">CONTINUE</button>
         </div>
     </div>
-    <script src="js/init.js"></script>  
+    
+<script src="js/init.js"></script>  
 </body>
 </html>
