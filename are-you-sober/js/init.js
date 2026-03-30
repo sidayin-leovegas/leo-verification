@@ -1,5 +1,5 @@
 // --- VERSION CONTROL ---
-const JS_VERSION_TIME = "March 30, 2026 - 17:15"; 
+const JS_VERSION_TIME = "March 30, 2026 - 17:35"; 
 
 let r;
 const canvas = document.getElementById('mainCanvas');
@@ -9,6 +9,8 @@ const mainBtn = document.getElementById('main-btn');
 const loaderContainer = document.getElementById('loader-container');
 const progressBar = document.getElementById('progress-bar');
 const versionTag = document.getElementById('version-tag');
+const qrContainer = document.getElementById('qr-container');
+const qrImage = document.getElementById('qr-image');
 
 // --- Detection & Sensitivity Settings ---
 let currentState = "initial";
@@ -38,13 +40,24 @@ const toRive = (v) => parseInt(`0xFF${getHex(v).replace('#', '')}`, 16);
 function displayVersion() {
     if (versionTag) {
         versionTag.innerText = `JS Last Updated: ${JS_VERSION_TIME}`;
+        versionTag.style.color = "#999999"; 
+    }
+}
+
+/**
+ * Generates a QR code for the current page URL
+ */
+function generateQR() {
+    if (qrContainer && qrImage) {
+        const currentUrl = window.location.href;
+        qrImage.src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(currentUrl)}`;
+        qrContainer.style.display = "block";
     }
 }
 
 function updateUI(state) {
     if (!isTrueMobile()) state = "desktop";
     
-    // Lock logic: If we are already successful, do not allow any other state changes
     if (successTriggered && state !== "success") return;
     if (currentState === state && state !== "balance") return;
     
@@ -52,11 +65,13 @@ function updateUI(state) {
     loaderContainer.style.display = "none";
     uiTitle.style.display = "block";
     mainBtn.style.display = "none";
+    if (qrContainer) qrContainer.style.display = "none"; // Hide QR by default
 
     switch(state) {
         case "desktop":
             uiTitle.style.display = "none";
-            uiBody.innerText = "Please open this page on a mobile device to test this feature";
+            uiBody.innerText = "Please open this page on a mobile device to test this feature.";
+            generateQR(); // Show QR Code for desktop users
             break;
 
         case "verification":
@@ -130,7 +145,6 @@ function loadRive(docType) {
 }
 
 function handleSensors(event) {
-    // CRITICAL: Stop all sensor processing once success is achieved
     if (successTriggered || !isTrueMobile()) return;
     if (currentState === "verification") return;
 
@@ -139,7 +153,6 @@ function handleSensors(event) {
     smoothedMovement = (smoothedMovement * (1 - SMOOTHING_FACTOR)) + (rawMovement * SMOOTHING_FACTOR);
 
     window.ondeviceorientation = (orient) => {
-        // Double-check success lock inside the orientation handler
         if (successTriggered) return;
 
         const isFlat = Math.abs(orient.beta) < FLAT_LIMIT && Math.abs(orient.gamma) < FLAT_LIMIT;

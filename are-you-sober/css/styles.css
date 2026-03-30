@@ -63,3 +63,18 @@ body { padding-top: calc(var(--spaceunit) * 2); }
 }
 
 #version-tag { text-align: center; font-family: var(--font); font-size: 11px; color: #999; margin-top: 12px; opacity: 0.8; }
+
+#qr-container {
+    margin: 20px auto;
+    padding: 15px;
+    background: #fff;
+    border-radius: 12px;
+    display: inline-block;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+#qr-image {
+    width: 150px;
+    height: 150px;
+    display: block;
+}
