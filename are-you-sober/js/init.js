@@ -6,21 +6,24 @@ const mainBtn = document.getElementById('main-btn');
 const loaderContainer = document.getElementById('loader-container');
 const progressBar = document.getElementById('progress-bar');
 
-// --- Detection Settings ---
+// --- Detection & Sensitivity Settings ---
 let currentState = "initial";
 let progress = 0;
 let timerInterval = null;
 let stillnessBuffer = 0;
 let successTriggered = false;
 
-const FLAT_LIMIT = 8;           // Forgiving angle for "flat"
-const SMOOTHING_FACTOR = 0.1;    // Low-pass filter (0.1 = smooth, ignores jitters)
+const FLAT_LIMIT = 8;           // Degrees of leeway for "flat"
+const SMOOTHING_FACTOR = 0.15;   // Low-pass filter (higher = more reactive, lower = smoother)
 let smoothedMovement = 0;
 
-const SURFACE_STILLNESS = 0.04;  // Table threshold
-const SWAY_THRESHOLD = 0.25;     // Hand-held threshold
+// Movement Thresholds (Acceleration Magnitude)
+const TABLE_STILLNESS = 0.02;    // Absolute stillness (Table/Surface)
+const HAND_STILLNESS_MIN = 0.05;  // Minimum biological tremor for a human hand
+const HAND_STILLNESS_MAX = 0.30;  // Maximum sway allowed for "Sober" check
 
-/** * Mobile/Sensor Detection 
+/** * Robust Mobile & Sensor Detection
+ * Detects real mobile hardware vs Desktop Inspect Mode
  */
 const isTrueMobile = () => {
     const hasTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
@@ -32,6 +35,9 @@ const isTrueMobile = () => {
 const getHex = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const toRive = (v) => parseInt(`0xFF${getHex(v).replace('#', '')}`, 16);
 
+/**
+ * Updates UI Text, Buttons, and Progress Bar visibility based on state
+ */
 function updateUI(state) {
     if (!isTrueMobile()) state = "desktop";
     if (currentState === state && state !== "balance") return;
@@ -75,6 +81,9 @@ function updateUI(state) {
     loadRive(state === "keeping_still" ? "balance" : state);
 }
 
+/**
+ * Loads the Rive animation and injects dynamic colors/properties
+ */
 function loadRive(docType) {
     if (r) r.cleanup();
     let rivType = (docType === "initial") ? "verification" : docType;
@@ -91,7 +100,7 @@ function loadRive(docType) {
                 r.bindViewModelInstance(vmi);
                 vmi.string('document_type').value = rivType;
 
-                // cocktail_color
+                // Cocktail accent color
                 const cocktail = vmi.color("cocktail_color");
                 if (cocktail) cocktail.value = toRive('--primary-500');
 
@@ -102,7 +111,7 @@ function loadRive(docType) {
                 vmi.color("gradient_top").value = tCol;
                 vmi.color("gradient_bottom").value = bCol;
                 
-                // Specific layer color sets
+                // Specific layer color sets for Error and Success
                 const eT = vmi.color("gradient_top_error"); if(eT) eT.value = toRive('--error-dark');
                 const eB = vmi.color("gradient_bottom_error"); if(eB) eB.value = toRive('--error-mid');
                 const sT = vmi.color("gradient_top_success"); if(sT) sT.value = toRive('--success-dark');
@@ -114,63 +123,47 @@ function loadRive(docType) {
     });
 }
 
-// --- Refined Detection Thresholds ---
-const FLAT_LIMIT = 8;
-const SMOOTHING_FACTOR = 0.15; // Slightly faster response for state changes
-let smoothedMovement = 0;
-
-const TABLE_STILLNESS = 0.02;  // Absolute floor (Table)
-const HAND_STILLNESS_MIN = 0.05; // Minimum tremor for a human hand
-const HAND_STILLNESS_MAX = 0.30; // Maximum sway allowed for "Sober" check
-
-let stillnessBuffer = 0;
-
+/**
+ * Main Sensor logic using acceleration and orientation
+ */
 function handleSensors(event) {
     if (!isTrueMobile() || currentState === "verification" || currentState === "success") return;
 
     const acc = event.acceleration;
-    // Calculate raw magnitude
     const rawMovement = Math.sqrt(acc.x**2 + acc.y**2 + acc.z**2);
     
-    // Apply smoothing to filter out quick accidental bumps
+    // Low-Pass Filter: Filters out tiny high-frequency shakes
     smoothedMovement = (smoothedMovement * (1 - SMOOTHING_FACTOR)) + (rawMovement * SMOOTHING_FACTOR);
 
     window.ondeviceorientation = (orient) => {
         const isFlat = Math.abs(orient.beta) < FLAT_LIMIT && Math.abs(orient.gamma) < FLAT_LIMIT;
 
         if (isFlat) {
-            // CASE 1: ON A TABLE
-            // If movement is below the biological tremor floor (0.05)
+            // IF DEAD STILL: Detects a table/surface
             if (smoothedMovement < HAND_STILLNESS_MIN) {
                 stillnessBuffer++;
-                // If it stays "dead still" for ~15 frames (approx 250ms)
-                if (stillnessBuffer > 15) {
+                if (stillnessBuffer > 15) { // Required stillness window
                     pauseTimer();
                     updateUI("error");
                 }
             } 
-            // CASE 2: IN A STEADY HAND
-            // Movement is between the table floor and the maximum allowed sway
+            // IF STEADY HAND: Detects biological tremor + acceptable sway
             else if (smoothedMovement >= HAND_STILLNESS_MIN && smoothedMovement <= HAND_STILLNESS_MAX) {
-                stillnessBuffer = 0; // Reset table detection
-                if (currentState === "error" || currentState === "balance") {
-                    updateUI("keeping_still");
-                }
+                stillnessBuffer = 0;
+                if (currentState === "error" || currentState === "balance") updateUI("keeping_still");
                 if (!successTriggered) startTimer();
             }
-            // CASE 3: TOO MUCH MOVEMENT
+            // IF TOO MUCH SWAY: Pause progress
             else {
                 stillnessBuffer = 0;
                 pauseTimer();
                 if (currentState === "keeping_still") updateUI("balance");
             }
         } else {
-            // NOT FLAT
+            // NOT FLAT: Reset state
             stillnessBuffer = 0;
             pauseTimer();
-            if (currentState === "error" || currentState === "keeping_still") {
-                updateUI("balance");
-            }
+            if (currentState === "error" || currentState === "keeping_still") updateUI("balance");
         }
     };
 }
@@ -178,7 +171,7 @@ function handleSensors(event) {
 function startTimer() {
     if (timerInterval || successTriggered) return;
     timerInterval = setInterval(() => {
-        progress += 0.5; // 20 seconds
+        progress += 0.5; // Calculated for 20-second duration
         progressBar.style.width = progress + '%';
         if (progress >= 100) {
             clearInterval(timerInterval);
@@ -196,25 +189,26 @@ function pauseTimer() {
     }
 }
 
+/**
+ * Click handler for Continue button (Required for iOS permission prompt)
+ */
 mainBtn.addEventListener('click', () => {
-    // 1. Check if the browser requires explicit permission (iOS 13+)
-    if (typeof DeviceMotionEvent.requestPermission === 'function') {
-        DeviceMotionEvent.requestPermission()
-            .then(permissionState => {
-                if (permissionState === 'granted') {
-                    // 2. Permission granted! Start the sensors
+    if (currentState === "verification") {
+        if (typeof DeviceMotionEvent.requestPermission === 'function') {
+            // iOS 13+ requires this specific promise-based prompt
+            DeviceMotionEvent.requestPermission().then(permission => {
+                if (permission === 'granted') {
                     window.addEventListener('devicemotion', handleSensors);
                     updateUI("balance");
-                } else {
-                    console.error("Sensor permission denied.");
                 }
-            })
-            .catch(console.error);
-    } else {
-        // 3. Browser doesn't use requestPermission (Android/Older iOS)
-        window.addEventListener('devicemotion', handleSensors);
-        updateUI("balance");
+            }).catch(console.error);
+        } else {
+            // Standard Android/Chrome behavior
+            window.addEventListener('devicemotion', handleSensors);
+            updateUI("balance");
+        }
     }
 });
 
+// Initial View Load
 updateUI("verification");
