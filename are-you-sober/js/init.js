@@ -1,5 +1,5 @@
 // --- VERSION CONTROL ---
-const JS_VERSION_TIME = "March 30, 2026 - 16:47"; // Manual timestamp
+const JS_VERSION_TIME = "March 30, 2026 - 16:55"; 
 
 let r;
 const canvas = document.getElementById('mainCanvas');
@@ -22,12 +22,9 @@ const SMOOTHING_FACTOR = 0.15;
 let smoothedMovement = 0;
 
 const TABLE_THRESHOLD = 0.07;    
-const HAND_STILLNESS_MAX = 0.30; 
-const STILLNESS_REQUIRED_FRAMES = 20; 
+const HAND_STILLNESS_MAX = 0.35; 
+const STILLNESS_REQUIRED_FRAMES = 25; // Slightly longer buffer for stability
 
-/** * Mobile & Sensor Detection 
- * Checks for hardware presence to separate desktop inspect mode
- */
 const isTrueMobile = () => {
     const hasTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
     const hasSensors = typeof DeviceOrientationEvent !== 'undefined';
@@ -46,6 +43,7 @@ function displayVersion() {
 
 function updateUI(state) {
     if (!isTrueMobile()) state = "desktop";
+    // Prevention: Don't re-trigger the same state unless it's a forced reset
     if (currentState === state && state !== "balance") return;
     
     currentState = state;
@@ -56,34 +54,27 @@ function updateUI(state) {
     switch(state) {
         case "desktop":
             uiTitle.style.display = "none";
-            // FIXED: Changed "for test" to "to test"
             uiBody.innerText = "Please use a mobile device to test this feature";
-            mainBtn.style.display = "none";
             break;
-
         case "verification":
             uiTitle.innerText = "How are we feeling this evening?";
-            uiBody.innerText = "We want to sure you have a sober and safe experience fore continuing with your deposit.";
+            uiBody.innerText = "We want to be sure you have a sober and safe experience before continuing with your deposit.";
             mainBtn.innerText = "CONTINUE";
             mainBtn.style.display = "block";
             break;
-            
         case "balance":
             uiTitle.style.display = "none";
             uiBody.innerHTML = "<b>Please hold your mobile device flat in your hand for 20 seconds.</b>";
             break;
-            
         case "keeping_still":
             uiTitle.style.display = "none";
             uiBody.innerHTML = "<b>Please keep still ...</b>";
             loaderContainer.style.display = "block";
             break;
-            
         case "error":
             uiTitle.style.display = "none";
             uiBody.innerHTML = "<b>Do not put your device down on a table or surface. Pick up your device to continue.</b>";
             break;
-            
         case "success":
             uiTitle.innerText = "Success!";
             uiBody.innerText = "Check completed. Please continue with your deposit and have a wonderful evening!";
@@ -112,8 +103,7 @@ function loadRive(docType) {
             if (vmi) {
                 r.bindViewModelInstance(vmi);
                 vmi.string('document_type').value = rivType;
-                const cocktail = vmi.color("cocktail_color");
-                if (cocktail) cocktail.value = toRive('--primary-500');
+                if (vmi.color("cocktail_color")) vmi.color("cocktail_color").value = toRive('--primary-500');
 
                 const tCol = (rivType === "error") ? toRive('--error-dark') : (rivType === "success") ? toRive('--success-dark') : toRive('--primary-400');
                 const bCol = (rivType === "error") ? toRive('--error-mid') : (rivType === "success") ? toRive('--success-mid') : toRive('--primary-300');
@@ -121,10 +111,10 @@ function loadRive(docType) {
                 vmi.color("gradient_top").value = tCol;
                 vmi.color("gradient_bottom").value = bCol;
                 
-                const eT = vmi.color("gradient_top_error"); if(eT) eT.value = toRive('--error-dark');
-                const eB = vmi.color("gradient_bottom_error"); if(eB) eB.value = toRive('--error-mid');
-                const sT = vmi.color("gradient_top_success"); if(sT) sT.value = toRive('--success-dark');
-                const sB = vmi.color("gradient_bottom_success"); if(sB) sB.value = toRive('--success-mid');
+                if(vmi.color("gradient_top_error")) vmi.color("gradient_top_error").value = toRive('--error-dark');
+                if(vmi.color("gradient_bottom_error")) vmi.color("gradient_bottom_error").value = toRive('--error-mid');
+                if(vmi.color("gradient_top_success")) vmi.color("gradient_top_success").value = toRive('--success-dark');
+                if(vmi.color("gradient_bottom_success")) vmi.color("gradient_bottom_success").value = toRive('--success-mid');
 
                 r.play('State Machine 1');
             }
@@ -142,8 +132,17 @@ function handleSensors(event) {
     window.ondeviceorientation = (orient) => {
         const isFlat = Math.abs(orient.beta) < FLAT_LIMIT && Math.abs(orient.gamma) < FLAT_LIMIT;
 
+        // If we are already in Error, we ONLY look for the "Pickup" action
+        if (currentState === "error") {
+            // Picked up = Device is no longer flat OR significant movement detected
+            if (!isFlat || rawMovement > 0.15) {
+                stillnessBuffer = 0;
+                updateUI("balance"); 
+            }
+            return; // Lockdown: Ignore other logic while in Error
+        }
+
         if (isFlat) {
-            // TABLE DETECTION
             if (rawMovement < TABLE_THRESHOLD) {
                 stillnessBuffer++;
                 if (stillnessBuffer > STILLNESS_REQUIRED_FRAMES) {
@@ -151,13 +150,12 @@ function handleSensors(event) {
                     updateUI("error");
                 }
             } 
-            // HANDHELD DETECTION
             else if (rawMovement >= TABLE_THRESHOLD && smoothedMovement <= HAND_STILLNESS_MAX) {
                 stillnessBuffer = 0; 
-                if (currentState === "error" || currentState === "balance") updateUI("keeping_still");
+                if (currentState === "balance") updateUI("keeping_still");
                 if (!successTriggered) startTimer();
             }
-            else {
+            else if (smoothedMovement > HAND_STILLNESS_MAX) {
                 stillnessBuffer = 0;
                 pauseTimer();
                 if (currentState === "keeping_still") updateUI("balance");
@@ -165,7 +163,7 @@ function handleSensors(event) {
         } else {
             stillnessBuffer = 0;
             pauseTimer();
-            if (currentState === "error" || currentState === "keeping_still") updateUI("balance");
+            if (currentState === "keeping_still") updateUI("balance");
         }
     };
 }
@@ -194,7 +192,6 @@ function pauseTimer() {
 mainBtn.addEventListener('click', () => {
     if (currentState === "verification") {
         if (typeof DeviceMotionEvent.requestPermission === 'function') {
-            // iOS 13+ permission flow
             DeviceMotionEvent.requestPermission().then(permission => {
                 if (permission === 'granted') {
                     window.addEventListener('devicemotion', handleSensors);
