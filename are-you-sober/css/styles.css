@@ -62,4 +62,4 @@ body { padding-top: calc(var(--spaceunit) * 2); }
     text-transform: uppercase; letter-spacing: 1px; cursor: pointer;
 }
 
-#version-tag { text-align: center; font-family: var(--font); font-size: 11px; color: #333333; margin-top: 12px; opacity: 0.8; }
+#version-tag { text-align: center; font-family: var(--font); font-size: 11px; color: #999; margin-top: 12px; opacity: 0.8; }
