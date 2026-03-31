@@ -38,13 +38,41 @@ body { padding-top: calc(var(--spaceunit) * 2); }
 }
 
 .top-animation {
-    width: 100%; margin-bottom: calc(var(--spaceunit) * 2);
-    border-radius: 12px;
-    background: linear-gradient(to bottom, var(--bg-top), var(--bg-bottom));
+    position: relative;
+    width: 100%;
+    /* Remove any fixed height like height: 300px if it's there */
+    aspect-ratio: 16 / 9; 
+    
+    border-radius: calc(var(--spaceunit) * 3);
     overflow: hidden;
+    
+    /* This ensures the container shrinks to fit the canvas */
+    display: flex; 
+    align-items: center;
+    justify-content: center;
+    padding: 0; 
 }
 
-#mainCanvas { width: 100%; aspect-ratio: 16 / 9; display: block; }
+#mainCanvas {
+    width: 100% !important;
+    height: 100% !important;
+    display: block;
+    /* This ensures it doesn't have that 4px bottom gap */
+    vertical-align: middle; 
+}
+
+/* Change this in your styles.css */
+.top-animation::after {
+    content: "";
+    position: absolute;
+    /* Use 'inset' as a shorthand for top/left/right/bottom: 0 */
+    inset: 0; 
+    z-index: 10;
+    pointer-events: none;
+    border-radius: inherit;
+    box-shadow: inset 0 3px 16px rgba(0, 0, 0, 0.3)
+}
+
 
 #ui-title { font-family: var(--font); font-size: 22px; font-weight: 700; margin: 16px 0 8px 0; }
 
