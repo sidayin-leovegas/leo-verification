@@ -98,8 +98,6 @@ h6 {
     width: 100% !important;
     height: 100% !important;
     display: block;
-    /* This ensures it doesn't have that 4px bottom gap */
-    vertical-align: middle; 
 }
 
 /* Change this in your styles.css */
