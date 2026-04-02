@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Gyro Verification</title>
+    <link rel="stylesheet" type="text/css" href="css/styles.css">
+    <script src="https://unpkg.com/@rive-app/canvas@latest/rive.js"></script>
+</head>
+<body>
+     <div class="container">
+        <div class="top-animation">
+            <canvas id="mainCanvas"></canvas>
+        </div>
+    
+        <div id="content-area">
+            <h2 id="ui-title">How are we feeling this evening?</h2>
+            <p id="ui-body">We want to be sure you have a sober and safe experience before continuing with your deposit.</p>
+            
+            <div id="qr-wrapper">
+                <div id="qr-container" style="display: none;">
+                    <img id="qr-image" src="" alt="Scan to verify on mobile">
+                    <p id="qr-text">Scan to verify on mobile</p>
+                </div>
+            </div>
+        
+            <div id="loader-container" style="display: none;">
+                <div id="progress-bar"></div>
+            </div>
+        
+            <button id="main-btn">CONTINUE</button>
+        </div>
+    </div>
+    
+    <div id="version-tag">JS Version: Loading...</div>
+    
+<script src="js/init.js"></script>  
+</body>
+</html>
