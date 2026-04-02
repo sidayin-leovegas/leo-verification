@@ -1,5 +1,5 @@
 // --- VERSION CONTROL ---
-const JS_VERSION_TIME = "April 02, 2026 - 11:20"; 
+const JS_VERSION_TIME = "April 02, 2026 - 13:45"; 
 
 let r;
 const canvas = document.getElementById('mainCanvas');
@@ -13,6 +13,8 @@ const versionTag = document.getElementById('version-tag');
 // --- Gamification Settings ---
 let currentLevel = 1;
 let isLevelActive = false; 
+let errorTimeout = null; // Timer for the 2-second wobble delay
+
 const levels = {
     1: { time: 10, top: '--primary-400', mid: '--primary-300', failTitle: "Uh-oh!", failBody: "Feeling a bit tipsy, are we?" },
     2: { time: 15, top: '--warning-dark', mid: '--warning-mid', failTitle: "Uh-oh! Still wobbly?", failBody: "Feeling a bit tipsy, are we? Let's try to focus a bit harder." },
@@ -122,11 +124,9 @@ function loadRive(docType) {
                 r.bindViewModelInstance(vmi);
                 vmi.string('document_type').value = rivType;
                 
-                // 1 & 2: Main Background Gradients (Synced to Level)
                 vmi.color("gradient_top").value = toRive(lvl.top);
                 vmi.color("gradient_bottom").value = toRive(lvl.mid);
 
-                // 3 & 4: State Overrides for Error/Success Screens
                 vmi.color("gradient_top_error").value = toRive('--error-dark');
                 vmi.color("gradient_bottom_error").value = toRive('--error-mid');
                 vmi.color("gradient_top_success").value = toRive('--success-dark');
@@ -150,31 +150,47 @@ function handleSensors(event) {
         const isFlat = Math.abs(orient.beta) < FLAT_LIMIT && Math.abs(orient.gamma) < FLAT_LIMIT;
 
         if (isFlat) {
-            // Error: Too Still (Surface)
+            // Surface check remains immediate as it's a "cheat" detection
             if (rawMovement < TABLE_THRESHOLD) {
                 stillnessBuffer++;
                 if (stillnessBuffer > STILLNESS_REQUIRED_FRAMES) failTest("surface_error");
             } 
-            // Progress: handheld steady
+            // Steady state: Clear any pending wobble errors
             else if (rawMovement >= TABLE_THRESHOLD && smoothedMovement <= HAND_STILLNESS_MAX) {
+                clearWobbleTimer();
                 stillnessBuffer = 0; 
                 if (currentState === "balance") updateUI("keeping_still");
                 startTimer();
             }
-            // Error: Too Much Movement (Wobble)
+            // Wobble detected: Start 2-second grace period
             else if (smoothedMovement > HAND_STILLNESS_MAX) {
                 stillnessBuffer = 0;
-                failTest("wobble_error");
+                pauseTimer(); 
+                if (!errorTimeout) {
+                    errorTimeout = setTimeout(() => {
+                        failTest("wobble_error");
+                    }, 2000); // 2 Second Delay
+                }
             }
         } else {
+            // Tilted: Pause timer and wait for return to flat
             stillnessBuffer = 0;
             pauseTimer();
+            clearWobbleTimer();
             if (currentState === "keeping_still") updateUI("balance");
         }
     };
 }
 
+function clearWobbleTimer() {
+    if (errorTimeout) {
+        clearTimeout(errorTimeout);
+        errorTimeout = null;
+    }
+}
+
 function failTest(type) {
+    clearWobbleTimer();
     pauseTimer();
     progress = 0;
     progressBar.style.width = '0%';
@@ -199,6 +215,7 @@ function startTimer() {
 
 function levelComplete() {
     pauseTimer();
+    clearWobbleTimer();
     if (currentLevel < 3) updateUI("level_success");
     else {
         successTriggered = true;
