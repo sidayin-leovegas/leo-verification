@@ -1,5 +1,5 @@
 // --- VERSION CONTROL ---
-const JS_VERSION_TIME = "April 02, 2026 - 10:15"; 
+const JS_VERSION_TIME = "April 02, 2026 - 11:20"; 
 
 let r;
 const canvas = document.getElementById('mainCanvas');
@@ -122,11 +122,11 @@ function loadRive(docType) {
                 r.bindViewModelInstance(vmi);
                 vmi.string('document_type').value = rivType;
                 
-                // 1 & 2: Background Gradients (Dynamic based on level)
+                // 1 & 2: Main Background Gradients (Synced to Level)
                 vmi.color("gradient_top").value = toRive(lvl.top);
                 vmi.color("gradient_bottom").value = toRive(lvl.mid);
 
-                // 3 & 4: State-Specific Gradients (Always injected)
+                // 3 & 4: State Overrides for Error/Success Screens
                 vmi.color("gradient_top_error").value = toRive('--error-dark');
                 vmi.color("gradient_bottom_error").value = toRive('--error-mid');
                 vmi.color("gradient_top_success").value = toRive('--success-dark');
@@ -150,24 +150,23 @@ function handleSensors(event) {
         const isFlat = Math.abs(orient.beta) < FLAT_LIMIT && Math.abs(orient.gamma) < FLAT_LIMIT;
 
         if (isFlat) {
-            // ERROR 1: Surface Detection (Too still)
+            // Error: Too Still (Surface)
             if (rawMovement < TABLE_THRESHOLD) {
                 stillnessBuffer++;
                 if (stillnessBuffer > STILLNESS_REQUIRED_FRAMES) failTest("surface_error");
             } 
-            // SUCCESS PATH: Handheld and Steady
+            // Progress: handheld steady
             else if (rawMovement >= TABLE_THRESHOLD && smoothedMovement <= HAND_STILLNESS_MAX) {
                 stillnessBuffer = 0; 
                 if (currentState === "balance") updateUI("keeping_still");
                 startTimer();
             }
-            // ERROR 2: Wobble Detection (Too much movement)
+            // Error: Too Much Movement (Wobble)
             else if (smoothedMovement > HAND_STILLNESS_MAX) {
                 stillnessBuffer = 0;
                 failTest("wobble_error");
             }
         } else {
-            // Out of bounds - pause but don't fail immediately
             stillnessBuffer = 0;
             pauseTimer();
             if (currentState === "keeping_still") updateUI("balance");
