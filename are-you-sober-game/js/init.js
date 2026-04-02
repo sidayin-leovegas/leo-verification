@@ -1,5 +1,5 @@
 // --- VERSION CONTROL ---
-const JS_VERSION_TIME = "April 02, 2026 - 08:35"; 
+const JS_VERSION_TIME = "April 02, 2026 - 09:15"; 
 
 let r;
 const canvas = document.getElementById('mainCanvas');
@@ -10,17 +10,17 @@ const loaderContainer = document.getElementById('loader-container');
 const progressBar = document.getElementById('progress-bar');
 const versionTag = document.getElementById('version-tag');
 const qrContainer = document.getElementById('qr-container');
-const qrImage = document.getElementById('qr-image');
 
 // --- Gamification Settings ---
 let currentLevel = 1;
+let isLevelActive = false; // Prevents sensor logic from running during intermission
 const levels = {
     1: { time: 10, top: '--primary-400', mid: '--primary-300', failTitle: "Uh-oh!", failBody: "Feeling a bit tipsy, are we?" },
     2: { time: 15, top: '--warning-dark', mid: '--warning-mid', failTitle: "Uh-oh! Still wobbly?", failBody: "Feeling a bit tipsy, are we? Let's try to focus a bit harder." },
-    3: { time: 20, top: '--info-dark', mid: '--info-mid', failTitle: "Uh-oh! Nearly there!", failBody: "Feeling a bit tipsy, are we? Focus! This is the final stretch before your deposit." }
+    3: { time: 20, top: '--info-dark', mid: '--info-mid', failTitle: "Uh-oh! Nearly there!", failBody: "Feeling a bit tipsy, are we? Focus! This is the final stretch." }
 };
 
-// --- Detection & Sensitivity Settings ---
+// --- Detection Settings ---
 let currentState = "initial";
 let progress = 0;
 let timerInterval = null;
@@ -44,23 +44,8 @@ const isTrueMobile = () => {
 const getHex = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const toRive = (v) => parseInt(`0xFF${getHex(v).replace('#', '')}`, 16);
 
-function displayVersion() {
-    if (versionTag) {
-        versionTag.innerText = `JS Last Updated: ${JS_VERSION_TIME}`;
-    }
-}
-
-function generateQR() {
-    if (qrContainer && qrImage) {
-        const currentUrl = window.location.href;
-        qrImage.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(currentUrl)}`;
-        qrContainer.style.display = "inline-flex";
-    }
-}
-
 function updateUI(state) {
     if (!isTrueMobile()) state = "desktop";
-    if (successTriggered && state !== "success") return;
     
     currentState = state;
     loaderContainer.style.display = "none";
@@ -72,9 +57,7 @@ function updateUI(state) {
 
     switch(state) {
         case "desktop":
-            uiTitle.style.display = "none";
             uiBody.innerText = "Please open this page on a mobile device to test this feature.";
-            generateQR();
             break;
 
         case "verification":
@@ -96,22 +79,33 @@ function updateUI(state) {
             break;
             
         case "error":
+            isLevelActive = false;
             uiTitle.innerText = lvl.failTitle;
             uiBody.innerText = lvl.failBody;
-            mainBtn.innerText = `RESTART LEVEL ${currentLevel}`;
+            mainBtn.innerText = `TRY AGAIN`;
+            mainBtn.style.display = "block";
+            break;
+
+        case "level_success":
+            isLevelActive = false;
+            uiTitle.innerText = "Level Complete!";
+            uiBody.innerText = `Great job. You've passed Level ${currentLevel}.`;
+            mainBtn.innerText = `START LEVEL ${currentLevel + 1}`;
             mainBtn.style.display = "block";
             break;
             
         case "success":
-            uiTitle.innerText = "Success!";
-            uiBody.innerText = "Verification complete. You've passed all levels!";
-            mainBtn.innerText = "DEPOSIT";
+            isLevelActive = false;
+            uiTitle.innerText = "PERFECT BALANCE!";
+            uiBody.innerText = "You are officially steady as a rock. Your deposit is ready to go.";
+            mainBtn.innerText = "I AM AWESOME";
             mainBtn.style.display = "block";
             break;
     }
     
     let rivType = state;
     if (state === "keeping_still") rivType = "keep";
+    if (state === "level_success") rivType = "success";
     loadRive(rivType);
 }
 
@@ -132,12 +126,20 @@ function loadRive(docType) {
                 r.bindViewModelInstance(vmi);
                 vmi.string('document_type').value = rivType;
                 
-                // Set level-specific colors
-                const tCol = (rivType === "error") ? toRive('--error-dark') : (rivType === "success") ? toRive('--success-dark') : toRive(lvl.top);
-                const bCol = (rivType === "error") ? toRive('--error-mid') : (rivType === "success") ? toRive('--success-mid') : toRive(lvl.mid);
-
+                // Set primary gradient based on Level
+                const tCol = toRive(lvl.top);
+                const bCol = toRive(lvl.mid);
                 vmi.color("gradient_top").value = tCol;
                 vmi.color("gradient_bottom").value = bCol;
+
+                // Specific state gradient injection
+                if (rivType === "error") {
+                    vmi.color("gradient_top_error").value = toRive('--error-dark');
+                    vmi.color("gradient_bottom_error").value = toRive('--error-mid');
+                } else if (rivType === "success") {
+                    vmi.color("gradient_top_success").value = toRive('--success-dark');
+                    vmi.color("gradient_bottom_success").value = toRive('--success-mid');
+                }
                 
                 r.play('State Machine 1');
             }
@@ -146,33 +148,27 @@ function loadRive(docType) {
 }
 
 function handleSensors(event) {
-    if (successTriggered || !isTrueMobile()) return;
-    if (currentState === "verification" || currentState === "error") return;
+    if (successTriggered || !isTrueMobile() || !isLevelActive) return;
 
     const acc = event.acceleration;
     const rawMovement = Math.sqrt(acc.x**2 + acc.y**2 + acc.z**2);
     smoothedMovement = (smoothedMovement * (1 - SMOOTHING_FACTOR)) + (rawMovement * SMOOTHING_FACTOR);
 
     window.ondeviceorientation = (orient) => {
-        if (successTriggered || currentState === "error") return;
+        if (!isLevelActive) return;
 
         const isFlat = Math.abs(orient.beta) < FLAT_LIMIT && Math.abs(orient.gamma) < FLAT_LIMIT;
 
         if (isFlat) {
-            // Table/Surface check
             if (rawMovement < TABLE_THRESHOLD) {
                 stillnessBuffer++;
-                if (stillnessBuffer > STILLNESS_REQUIRED_FRAMES) {
-                    failLevel();
-                }
+                if (stillnessBuffer > STILLNESS_REQUIRED_FRAMES) failLevel();
             } 
-            // Sway/Steady check
             else if (rawMovement >= TABLE_THRESHOLD && smoothedMovement <= HAND_STILLNESS_MAX) {
                 stillnessBuffer = 0; 
                 if (currentState === "balance") updateUI("keeping_still");
-                if (!successTriggered) startTimer();
+                startTimer();
             }
-            // Too much movement (User is wobbling)
             else if (smoothedMovement > HAND_STILLNESS_MAX) {
                 stillnessBuffer = 0;
                 pauseTimer();
@@ -188,15 +184,14 @@ function handleSensors(event) {
 
 function failLevel() {
     pauseTimer();
-    progress = 0; // Reset progress for the level
+    progress = 0;
     progressBar.style.width = '0%';
     updateUI("error");
 }
 
 function startTimer() {
-    if (timerInterval || successTriggered) return;
+    if (timerInterval || !isLevelActive) return;
     const targetTime = levels[currentLevel].time;
-    // progress increment based on target time (0.5% every 100ms = 20s total, adjusted here)
     const increment = 10 / targetTime; 
 
     timerInterval = setInterval(() => {
@@ -211,11 +206,9 @@ function startTimer() {
 }
 
 function levelComplete() {
+    pauseTimer();
     if (currentLevel < 3) {
-        currentLevel++;
-        progress = 0;
-        progressBar.style.width = '0%';
-        updateUI("balance");
+        updateUI("level_success");
     } else {
         successTriggered = true;
         updateUI("success");
@@ -230,7 +223,13 @@ function pauseTimer() {
 }
 
 mainBtn.addEventListener('click', () => {
-    if (currentState === "verification" || currentState === "error") {
+    if (currentState === "verification" || currentState === "error" || currentState === "level_success") {
+        if (currentState === "level_success") currentLevel++;
+        
+        progress = 0;
+        progressBar.style.width = '0%';
+        isLevelActive = true; 
+
         if (typeof DeviceMotionEvent.requestPermission === 'function') {
             DeviceMotionEvent.requestPermission().then(permission => {
                 if (permission === 'granted') {
@@ -245,5 +244,6 @@ mainBtn.addEventListener('click', () => {
     }
 });
 
+function displayVersion() { if (versionTag) versionTag.innerText = `JS Last Updated: ${JS_VERSION_TIME}`; }
 displayVersion();
 updateUI("verification");
