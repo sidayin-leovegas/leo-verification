@@ -1,5 +1,5 @@
 // --- VERSION CONTROL ---
-const JS_VERSION_TIME = "April 02, 2026 - 13:45"; 
+const JS_VERSION_TIME = "April 02, 2026 - 15:20"; 
 
 let r;
 const canvas = document.getElementById('mainCanvas');
@@ -13,7 +13,8 @@ const versionTag = document.getElementById('version-tag');
 // --- Gamification Settings ---
 let currentLevel = 1;
 let isLevelActive = false; 
-let errorTimeout = null; // Timer for the 2-second wobble delay
+let errorTimeout = null;
+let levelStartTime = 0; // Track when the level actually started to allow a grace period
 
 const levels = {
     1: { time: 10, top: '--primary-400', mid: '--primary-300', failTitle: "Uh-oh!", failBody: "Feeling a bit tipsy, are we?" },
@@ -21,19 +22,20 @@ const levels = {
     3: { time: 20, top: '--info-dark', mid: '--info-mid', failTitle: "Uh-oh! Nearly there!", failBody: "Feeling a bit tipsy, are we? Focus! This is the final stretch." }
 };
 
-// --- Detection Settings ---
+// --- Detection Settings (Recalibrated) ---
 let currentState = "initial";
 let progress = 0;
 let timerInterval = null;
 let stillnessBuffer = 0;
 let successTriggered = false;
 
-const FLAT_LIMIT = 10;           
-const SMOOTHING_FACTOR = 0.15;   
+const FLAT_LIMIT = 12;           // Slightly more lenient angle
+const SMOOTHING_FACTOR = 0.10;   // Heavier smoothing to ignore "snappy" movements
 let smoothedMovement = 0;
-const TABLE_THRESHOLD = 0.07;    
-const HAND_STILLNESS_MAX = 0.35; 
-const STILLNESS_REQUIRED_FRAMES = 25; 
+
+const TABLE_THRESHOLD = 0.08;    // Slightly higher to catch noisy tables
+const HAND_STILLNESS_MAX = 0.45; // Increased to allow more natural "sober" handheld movement
+const STILLNESS_REQUIRED_FRAMES = 15; // Faster surface detection
 
 const isTrueMobile = () => {
     const hasTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
@@ -51,7 +53,6 @@ function updateUI(state) {
     loaderContainer.style.display = "none";
     uiTitle.style.display = "block";
     mainBtn.style.display = "none";
-
     const lvl = levels[currentLevel];
 
     switch(state) {
@@ -111,7 +112,6 @@ function loadRive(docType) {
     if (r) r.cleanup();
     let rivType = (docType === "initial") ? "verification" : docType;
     const lvl = levels[currentLevel];
-
     r = new rive.Rive({
         src: 'assets/document_requst_animation_41.riv',
         canvas: canvas,
@@ -123,15 +123,12 @@ function loadRive(docType) {
             if (vmi) {
                 r.bindViewModelInstance(vmi);
                 vmi.string('document_type').value = rivType;
-                
                 vmi.color("gradient_top").value = toRive(lvl.top);
                 vmi.color("gradient_bottom").value = toRive(lvl.mid);
-
                 vmi.color("gradient_top_error").value = toRive('--error-dark');
                 vmi.color("gradient_bottom_error").value = toRive('--error-mid');
                 vmi.color("gradient_top_success").value = toRive('--success-dark');
                 vmi.color("gradient_bottom_success").value = toRive('--success-mid');
-                
                 r.play('State Machine 1');
             }
         }
@@ -148,35 +145,40 @@ function handleSensors(event) {
     window.ondeviceorientation = (orient) => {
         if (!isLevelActive) return;
         const isFlat = Math.abs(orient.beta) < FLAT_LIMIT && Math.abs(orient.gamma) < FLAT_LIMIT;
+        const timeSinceStart = Date.now() - levelStartTime;
 
         if (isFlat) {
-            // Surface check remains immediate as it's a "cheat" detection
+            // 1. Immediate Surface Check (Absolute priority)
             if (rawMovement < TABLE_THRESHOLD) {
                 stillnessBuffer++;
-                if (stillnessBuffer > STILLNESS_REQUIRED_FRAMES) failTest("surface_error");
-            } 
-            // Steady state: Clear any pending wobble errors
-            else if (rawMovement >= TABLE_THRESHOLD && smoothedMovement <= HAND_STILLNESS_MAX) {
+                if (stillnessBuffer > STILLNESS_REQUIRED_FRAMES) {
+                    failTest("surface_error");
+                    return;
+                }
+            } else {
+                stillnessBuffer = 0;
+            }
+
+            // 2. Movement Logic
+            if (smoothedMovement <= HAND_STILLNESS_MAX) {
                 clearWobbleTimer();
-                stillnessBuffer = 0; 
                 if (currentState === "balance") updateUI("keeping_still");
                 startTimer();
-            }
-            // Wobble detected: Start 2-second grace period
-            else if (smoothedMovement > HAND_STILLNESS_MAX) {
-                stillnessBuffer = 0;
+            } else {
+                // Ignore wobbles for the first 800ms of a level to allow for initial adjustment
+                if (timeSinceStart < 800) return;
+
                 pauseTimer(); 
                 if (!errorTimeout) {
                     errorTimeout = setTimeout(() => {
                         failTest("wobble_error");
-                    }, 2000); // 2 Second Delay
+                    }, 2000); 
                 }
             }
         } else {
-            // Tilted: Pause timer and wait for return to flat
+            // Not flat: Pause but allow user to level it back within the wobble timeout
             stillnessBuffer = 0;
             pauseTimer();
-            clearWobbleTimer();
             if (currentState === "keeping_still") updateUI("balance");
         }
     };
@@ -201,7 +203,6 @@ function startTimer() {
     if (timerInterval || !isLevelActive) return;
     const targetTime = levels[currentLevel].time;
     const increment = 10 / targetTime; 
-
     timerInterval = setInterval(() => {
         progress += increment; 
         progressBar.style.width = Math.min(progress, 100) + '%';
@@ -236,6 +237,7 @@ mainBtn.addEventListener('click', () => {
         progress = 0;
         progressBar.style.width = '0%';
         isLevelActive = true; 
+        levelStartTime = Date.now(); // Start the grace period clock
         
         if (typeof DeviceMotionEvent.requestPermission === 'function') {
             DeviceMotionEvent.requestPermission().then(permission => {
