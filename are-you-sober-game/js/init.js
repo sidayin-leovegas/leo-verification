@@ -1,5 +1,5 @@
 // --- VERSION CONTROL ---
-const JS_VERSION_TIME = "April 02, 2026 - 19:30"; 
+const JS_VERSION_TIME = "April 02, 2026 - 21:15"; 
 
 let r;
 const canvas = document.getElementById('mainCanvas');
@@ -16,9 +16,9 @@ let isLevelActive = false;
 let levelStartTime = 0; 
 
 const levels = {
-    1: { time: 5, top: '--primary-400', mid: '--primary-300', failTitle: "Uh-oh!", failBody: "Feeling a bit tipsy, are we?" },
-    2: { time: 15, top: '--warning-dark', mid: '--warning-mid', failTitle: "Uh-oh! Still wobbly?", failBody: "Feeling a bit tipsy, are we? Let's try to focus a bit harder." },
-    3: { time: 25, top: '--info-dark', mid: '--info-mid', failTitle: "Uh-oh! Nearly there!", failBody: "Feeling a bit tipsy, are we? Focus! This is the final stretch." }
+    1: { time: 5, top: '--primary-400', mid: '--primary-300', failTitle: "Whoops!", failBody: "Spilled a little? Let's try that again." },
+    2: { time: 15, top: '--warning-dark', mid: '--warning-mid', failTitle: "Wobbly knees?", failBody: "Focus your eyes on the prize. Steady hands now!" },
+    3: { time: 25, top: '--info-dark', mid: '--info-mid', failTitle: "Party Foul!", failBody: "So close to the finish line! Take a deep breath and go again." }
 };
 
 // --- Detection Settings ---
@@ -56,9 +56,9 @@ function updateUI(state) {
 
     switch(state) {
         case "verification":
-            uiTitle.innerText = "How are we feeling this evening?";
-            uiBody.innerText = "We want to be sure you have a sober and safe experience before continuing with your deposit.";
-            mainBtn.innerText = "START";
+            uiTitle.innerText = "Ready to join the party?";
+            uiBody.innerText = "Before we pour another round of fun, let’s test those reflexes. Pass 3 levels of balance to unlock your deposit!";
+            mainBtn.innerText = "START THE CHALLENGE";
             mainBtn.style.display = "block";
             break;
         case "balance":
@@ -72,8 +72,8 @@ function updateUI(state) {
             break;
         case "surface_error":
             isLevelActive = false;
-            uiTitle.innerText = "Surface Detected";
-            uiBody.innerText = "Please pick up your device. You must hold it in your hand to complete the check.";
+            uiTitle.innerText = "No Cheating!";
+            uiBody.innerText = "Setting your phone down is a party foul. Pick it up to continue the game!";
             mainBtn.innerText = `RESTART LEVEL ${currentLevel}`;
             mainBtn.style.display = "block";
             break;
@@ -87,14 +87,14 @@ function updateUI(state) {
         case "level_success":
             isLevelActive = false;
             uiTitle.innerText = "Level Complete!";
-            uiBody.innerText = `Great balance. Ready for the next challenge?`;
+            uiBody.innerText = `You've got moves! Ready for the next challenge?`;
             mainBtn.innerText = `START LEVEL ${currentLevel + 1}`;
             mainBtn.style.display = "block";
             break;
         case "success":
             isLevelActive = false;
             uiTitle.innerText = "PERFECT BALANCE!";
-            uiBody.innerText = "You are officially steady as a rock. Your deposit is ready to go.";
+            uiBody.innerText = "You passed! You're as steady as a pro. Let's get that deposit moving.";
             mainBtn.innerText = "I AM AWESOME";
             mainBtn.style.display = "block";
             break;
@@ -124,6 +124,11 @@ function loadRive(docType) {
                 r.bindViewModelInstance(vmi);
                 vmi.string('document_type').value = rivType;
                 
+                // Color injection: Cocktail color + Gradient Overrides
+                if (vmi.color("cocktail_color")) {
+                    vmi.color("cocktail_color").value = toRive('--primary-500');
+                }
+
                 let topColor = toRive(lvl.top);
                 let bottomColor = toRive(lvl.mid);
 
@@ -201,7 +206,6 @@ function failTest(type) {
 function startTimer() {
     if (timerInterval || !isLevelActive) return;
     const targetTime = levels[currentLevel].time;
-    // Adjusted increment logic to match target seconds exactly
     const increment = 10 / targetTime; 
     timerInterval = setInterval(() => {
         progress += increment; 
