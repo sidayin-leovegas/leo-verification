@@ -12,8 +12,21 @@
     --soft-elevation: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
     --success-dark: #224543;
     --success-mid: #008C71;
+    --success-light:#D6EAE6;
+
     --error-dark: #B62D20;
     --error-mid: #D33C2D;
+    --error-light:#FDE3E0;
+
+    --warning-dark:#BC7E46;
+    --warning-mid:#E8AC59;
+    --warning-light:#FBF3E8;
+        
+    --info-dark:#1618D3;
+    --info-mid:#373AE5;
+    --info-light:#E7E7FC;
+
+
     --bg-top: var(--primary-400);
     --bg-bottom: var(--primary-300);
 }
