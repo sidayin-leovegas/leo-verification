@@ -123,17 +123,20 @@ input[type="radio"] { display: none; }
     opacity: 0.6;
 }
 
-/* --- Modal Overlay --- */
+/* --- Updated Modal Overlay --- */
 .modal-overlay {
     position: fixed;
     top: 0;
     left: 0;
     width: 100vw;
-    height: 100vh;
-    background: rgba(0, 0, 0, 0.85); /* 85% Black Background */
+    /* Use dvh for dynamic height in Safari */
+    height: 100vh; 
+    height: 100dvh; 
+    background: rgba(0, 0, 0, 0.85);
     display: flex;
     justify-content: center;
-    align-items: center;
+    /* Anchor to bottom of actual viewable area */
+    align-items: flex-end; 
     z-index: 1000;
     opacity: 0;
     pointer-events: none;
@@ -147,23 +150,26 @@ input[type="radio"] { display: none; }
 
 .modal-content {
     width: 100vw;
+    /* Set height to dvh so the canvas is pinned to the real bottom */
     height: 100vh;
+    height: 100dvh;
     display: flex;
     justify-content: center;
-    align-items: center;
+    align-items: flex-end; 
     padding: 0;
     margin: 0;
-    overflow: hidden; /* Prevent any scrollbars from scaling */
+    overflow: hidden;
 }
 
 #mainCanvas {    
     width: 100vw !important;
-    max-width:1000px;
+    /* Ensure the canvas doesn't expand past the visible area */
     height: 100vh !important;
+    height: 100dvh !important;
+    max-width: 1000px;
     background: transparent;
-    display: block;    /* Remove object-fit and object-position — Rive JS handles this now */
-}
-
+    display: block;    
+} 
 .close-x {
     position: absolute;
     top: 20px;
