@@ -59,9 +59,18 @@ h6 {
 }
 
 /* --- Grids & Radio Buttons --- */
-.theme-grid, .status-grid {
+.theme-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+    gap: var(--spaceunit);
+    width: 100%;
+    padding: var(--spaceunit) 0;
+}
+
+/* Force Level buttons (1-4) onto a single row with equal widths */
+.status-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
     gap: var(--spaceunit);
     width: 100%;
     padding: var(--spaceunit) 0;
@@ -129,14 +138,13 @@ input[type="radio"] { display: none; }
     top: 0;
     left: 0;
     width: 100vw;
-    /* Use dvh for dynamic height in Safari */
+    /* Use dvh for dynamic height in Safari to prevent cut-off */
     height: 100vh; 
-    height: 100dvh; 
+    height: 100dvh;
     background: rgba(0, 0, 0, 0.85);
     display: flex;
     justify-content: center;
-    /* Anchor to bottom of actual viewable area */
-    align-items: flex-end; 
+    align-items: flex-end; /* Anchor to the viewable bottom */
     z-index: 1000;
     opacity: 0;
     pointer-events: none;
@@ -150,7 +158,6 @@ input[type="radio"] { display: none; }
 
 .modal-content {
     width: 100vw;
-    /* Set height to dvh so the canvas is pinned to the real bottom */
     height: 100vh;
     height: 100dvh;
     display: flex;
@@ -163,13 +170,13 @@ input[type="radio"] { display: none; }
 
 #mainCanvas {    
     width: 100vw !important;
-    /* Ensure the canvas doesn't expand past the visible area */
     height: 100vh !important;
     height: 100dvh !important;
-    max-width: 1000px;
+    max-width: 1000px; /* Optional cap for ultra-wide desktop screens */
     background: transparent;
     display: block;    
 } 
+
 .close-x {
     position: absolute;
     top: 20px;
@@ -181,7 +188,7 @@ input[type="radio"] { display: none; }
     font-weight: 300;
     cursor: pointer;
     line-height: 1;
-    z-index: 1001; /* Ensure the X button stays on top of the cover-size canvas */
+    z-index: 1001; 
     transition: transform 0.2s ease;
 }
 
@@ -191,9 +198,9 @@ input[type="radio"] { display: none; }
 
 /* --- Theme Selection Overrides --- */
 body:has(#option-b:checked) { --primary-500: #ee4400; --font: "Roboto"; --button-text-primary: #fff;}
-body:has(#option-c:checked) { --primary-500: #b19661; --font: "Sofia Sans"; --default-bg: #0b0b0b; --paper: #1C1D20; --body-text: #fff; }
-body:has(#option-d:checked) { --primary-500: #fe8000; --font: "Inter"; --default-bg: #f5f7fb; }
-body:has(#option-e:checked) { --primary-500: #f14aa7; --font: "Poppins"; --default-bg: #000; --paper: #222; --body-text: #fff; }
+body:has(#option-c:checked) { --primary-500: #b19661; --font: "Sofia Sans"; --default-bg: #0b0b0b; --paper: #1C1D20; --body-text: #fff; --button-text-primary: #fff; }
+body:has(#option-d:checked) { --primary-500: #fe8000; --font: "Inter"; --default-bg: #f5f7fb; --button-text-primary: #fff; }
+body:has(#option-e:checked) { --primary-500: #f14aa7; --font: "Poppins"; --default-bg: #000; --paper: #222; --body-text: #fff; --button-text-primary: #fff; }
 
 /* Hide themes beyond the first 4 */
 .theme-grid label:nth-of-type(n+5), 
