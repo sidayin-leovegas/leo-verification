@@ -201,7 +201,4 @@ body:has(#option-b:checked) { --primary-500: #ee4400; --font: "Roboto"; --button
 body:has(#option-c:checked) { --primary-500: #b19661; --font: "Sofia Sans"; --default-bg: #0b0b0b; --paper: #1C1D20; --body-text: #fff; --button-text-primary: #fff; }
 body:has(#option-d:checked) { --primary-500: #fe8000; --font: "Inter"; --default-bg: #f5f7fb; --button-text-primary: #fff; }
 body:has(#option-e:checked) { --primary-500: #f14aa7; --font: "Poppins"; --default-bg: #000; --paper: #222; --body-text: #fff; --button-text-primary: #fff; }
-
-/* Hide themes beyond the first 4 */
-.theme-grid label:nth-of-type(n+5), 
-.theme-grid input:nth-of-type(n+5) { display: none; }
+body:has(#option-f:checked) { --primary-500: #53A653; --font: "Kanit"; --default-bg: #F9F9F9; --paper: #fff; --body-text: #000; --button-text-primary: #000; }

@@ -31,8 +31,11 @@ function getSelection(name) {
 }
 
 function getThemeText() {
+    // Finds the radio button that is currently checked
     const selected = document.querySelector('input[name="theme-group"]:checked');
-    return selected ? selected.nextElementSibling.textContent.trim() : null;
+    
+    // Returns the .value attribute (e.g., "LeoVegas") instead of the label text
+    return selected ? selected.value : null;
 }
 
 /**
@@ -65,6 +68,7 @@ function initRive() {
     const exLevel = parseInt(getSelection('ex-group'));
     const winText = getWinText(winLevel);
     const winAmount = getWinAmount(winLevel);
+    console.log("Theme=", themeName);
 
     // Clean up previous instance to manage memory and prevent event overlap
     if (r) { r.cleanup(); }
