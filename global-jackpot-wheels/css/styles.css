@@ -61,7 +61,7 @@ h6 {
 /* --- Grids & Radio Buttons --- */
 .theme-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
     gap: var(--spaceunit);
     width: 100%;
     padding: var(--spaceunit) 0;
@@ -88,6 +88,7 @@ h6 {
     font-weight: 700;
     font-size: 13px;
     border: 2px solid transparent;
+    white-space: nowrap;
 }
 
 input[type="radio"]:checked + label {
