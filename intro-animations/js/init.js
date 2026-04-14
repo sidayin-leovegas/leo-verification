@@ -17,59 +17,26 @@ function closeAnimation() {
 }
 
 function initRive() {
-    const brand = getSelection('theme-group');
+    // Get the selection (e.g., "BetMGM")
+    const rawBrand = getSelection('theme-group');
+    
+    // Convert to lowercase to match your filenames (e.g., "betmgm")
+    const brand = rawBrand ? rawBrand.toLowerCase() : '';
+    
     const speedMs = parseInt(getSelection('speed-group'));
     const welcomeTextValue = welcomeInput.value;
     
-    // Use ./ to ensure it looks relative to the current project folder
-    const rivFile = `assets/${brand}_intro.riv`;
+    // Build the path with the lowercase brand
+    const rivFile = `./assets/${brand}_intro.riv`;
+
+    console.log('[Rive] Loading file:', rivFile);
 
     if (r) { r.cleanup(); }
 
     r = new rive.Rive({
         src: rivFile,
         canvas: canvas,
-        stateMachines: 'State Machine 1',
-        autoplay: true,
-        onLoad: () => {
-            // ONLY trigger UI block if load is successful
-            r.resizeDrawingSurfaceToCanvas();
-            modal.style.transition = 'none';
-            modal.style.opacity = '1';
-            modal.classList.add('active');
-
-            try {
-                const vm = r.defaultViewModel();
-                if (vm) {
-                    const vmi = vm.instance();
-                    r.bindViewModelInstance(vmi);
-                    if (vmi.string('welcomeText')) vmi.string('welcomeText').value = welcomeTextValue;
-
-                    setTimeout(() => {
-                        const loadingComplete = vmi.boolean('LoadingComplete');
-                        if (loadingComplete) loadingComplete.value = true;
-                    }, speedMs);
-                }
-            } catch (e) {
-                console.error('[Rive] Init Error:', e.message);
-            }
-        },
-        onLoadError: () => {
-            console.error(`[Rive] 404 - Could not find: ${rivFile}`);
-            alert(`File not found: ${rivFile}\n\nCheck case-sensitivity and folder structure.`);
-        },
-        onStop: () => {
-            modal.style.pointerEvents = 'none';
-            modal.style.transition = 'opacity 0.5s ease';
-            modal.style.opacity = '0';
-            const fallback = setTimeout(closeAnimation, 600);
-            modal.addEventListener('transitionend', () => {
-                clearTimeout(fallback);
-                closeAnimation();
-            }, { once: true });
-        }
-    });
-}
+        // ... rest of your config
 
 // Helper functions
 function getSelection(name) {
