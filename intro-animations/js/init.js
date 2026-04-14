@@ -19,10 +19,17 @@ function closeAnimation() {
 }
 
 function initRive() {
-    const brand = getSelection('theme-group');
+    // FIX: Convert the selection (e.g., "BetMGM") to lowercase (e.g., "betmgm")
+    const selection = getSelection('theme-group');
+    const brand = selection ? selection.toLowerCase() : '';
+    
     const speedMs = parseInt(getSelection('speed-group'));
     const welcomeTextValue = welcomeInput.value;
-    const rivFile = `assets/${brand}_intro.riv`;
+    
+    // Path now uses the lowercase brand name: assets/betmgm_intro.riv
+    const rivFile = `./assets/${brand}_intro.riv`;
+
+    console.log('[Rive] Attempting to load:', rivFile);
 
     if (r) { r.cleanup(); }
 
@@ -35,22 +42,14 @@ function initRive() {
             fit: rive.Fit.Cover,
             alignment: rive.Alignment.Center,
         }),
-        /**
-         * 🎯 THE DEBUGGER:
-         * This will log every state change. 
-         * Run the animation once, look at the console, 
-         * and see what the LAST name is before the animation "ends".
-         */
         onStateChange: (event) => {
             const states = event.data;
             console.log('[Rive] State changed to:', states);
 
-            // Replace 'Outro' with whatever name appears last in your console
             if (states.includes('End')){
                 console.log('[Rive] Target state reached — initiating fade-out.');
                 
-                modal.style.pointerEvents = 'none'; // Click through immediately
-                // modal.style.transition = 'opacity 0.5s ease';
+                modal.style.pointerEvents = 'none'; 
                 modal.style.opacity = '0';
                 
                 const fallback = setTimeout(closeAnimation, 600);
@@ -114,12 +113,3 @@ const ro = new ResizeObserver(() => {
 });
 if (canvas.parentElement) ro.observe(canvas.parentElement);
 
-// Global Click Debugger
-document.addEventListener('click', (e) => {
-    const el = e.target;
-    if (el.closest('#animationModal')) {
-        console.warn('⚠️ UI Blocked: Clicked inside #animationModal. Classes:', modal.className);
-    } else {
-        console.log('✅ Clicked outside modal on:', el.tagName, el.id || el.className);
-    }
-}, true);
