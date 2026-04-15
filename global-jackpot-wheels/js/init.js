@@ -53,8 +53,8 @@ function getWinAmount(level) {
     const amountMap = {
         1: "783,38 kr",
         2: "1 894,29 kr",
-        3: "250 023,12 kr",
-        4: "12 989 128,92 kr"
+        3: "R$250,023.12",
+        4: "€12,989,128.92"
     };
     return amountMap[level] || "0,00 kr";
 }
