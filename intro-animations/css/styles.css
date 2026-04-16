@@ -223,3 +223,26 @@ body:has(#option-g:checked) { --primary-500: #ff1a7a; --primary-400: #ff3c8e; --
     --bg-bottom: var(--primary-300);
 
 }
+
+/*BetUK*/
+body:has(#option-h:checked) { --primary-500: #e61629; --primary-400: #ea3949; --primary-300: #ee5c69; --font: "Barlow Condensed"; --default-bg: #e8eef4; --body-text: #002e52; 
+--error-dark:#B2000C;
+    --error-mid:#E62C39;
+    --error-light:#FFF2F3;
+
+    --warning-dark:#B15500;
+    --warning-mid:#FF7A00;
+    --warning-light:#FCF3EA;
+
+    --success-dark:#008123;
+    --success-mid:#42C867;
+    --success-light:#ECFFF1;
+
+    --info-dark:#0058B9;
+    --info-mid:#3696FF;
+    --info-light:#ECF5FF;
+    
+    --bg-top: var(--primary-400);
+    --bg-bottom: var(--primary-300);
+
+}
