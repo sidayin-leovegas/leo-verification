@@ -246,6 +246,28 @@ body:has(#option-h:checked) { --primary-500: #e61629; --primary-400: #ea3949; --
     --bg-bottom: var(--primary-300);
 
 }
+/*21 UK*/
+body:has(#option-i:checked) { --primary-500: #00d0f4; --primary-400: #26d7f6; --primary-300: #4ddef7; --font: "Montserrat"; --default-bg: #1a222d; --paper: #000; --body-text: #fff; 
+--error-dark:#A3000F;
+    --error-mid:#FF4A5B;
+    --error-light:#FFE3E5;
+
+    --warning-dark:#934C09;
+    --warning-mid:#FF8A1A;
+    --warning-light:#FFEDDC;
+
+    --success-dark:#037031;
+    --success-mid:#38D47A;
+    --success-light:#E9FFEF;
+
+    --info-dark:#00629A;
+    --info-mid:#00D0F4;
+    --info-light:#E9EEFF;
+    
+    --bg-top: var(--primary-400);
+    --bg-bottom: var(--primary-300);
+
+}
 
 /*Slot Boss*/
 body:has(#option-j:checked) { --primary-500: #9bc449; --primary-400: #aacd64; --primary-300: #b9d680; --font: "Montserrat"; --default-bg: #eef3f3;
