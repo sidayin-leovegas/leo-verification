@@ -59,24 +59,26 @@ h6 {
 }
 
 /* --- Grids & Radio Buttons --- */
-.theme-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-    gap: var(--spaceunit);
-    width: 100%;
-    padding: var(--spaceunit) 0;
-}
-
-/* Speed grid updated to 3 columns */
+.theme-grid, 
 .status-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    /* Limit to 3 columns max while allowing growth */
+    grid-template-columns: repeat(3, 1fr); 
     gap: var(--spaceunit);
     width: 100%;
     padding: var(--spaceunit) 0;
 }
 
-.theme-grid label, .status-grid label {
+/* Responsive wrap: drop to 2 columns on small screens */
+@media (max-width: 440px) {
+    .theme-grid, 
+    .status-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+.theme-grid label, 
+.status-grid label {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -89,6 +91,7 @@ h6 {
     font-size: 13px;
     border: 2px solid transparent;
     white-space: nowrap;
+    min-width: 0; /* Allows buttons to shrink to fit grid */
 }
 
 input[type="radio"]:checked + label {
@@ -158,7 +161,7 @@ input[type="radio"] { display: none; }
     left: 0;
     width: 100vw;
     height: 100dvh;
-    background: transparent; /* Overlay is now invisible to show site content beneath */
+    background: transparent;
     display: flex;
     justify-content: center;
     align-items: flex-end;
@@ -168,11 +171,6 @@ input[type="radio"] { display: none; }
     transition: opacity 0.3s ease;
 }
 
-
-.modal-overlay.active {
-    opacity: 1;
-    pointer-events: auto; /* Re-enables clicking only when active */
-}
 .modal-overlay.active {
     opacity: 1;
     pointer-events: auto;
@@ -202,92 +200,48 @@ body:has(#option-c:checked) { --primary-500: #b19661; --font: "Sofia Sans"; --de
 body:has(#option-d:checked) { --primary-500: #fe8000; --font: "Inter"; --default-bg: #f5f7fb; --button-text-primary: #000; }
 body:has(#option-e:checked) { --primary-500: #f14aa7; --font: "Poppins"; --default-bg: #000; --paper: #222; --body-text: #fff; --button-text-primary: #fff; }
 body:has(#option-f:checked) { --primary-500: #53A653; --font: "Kanit"; --default-bg: #F9F9F9; --paper: #fff; --body-text: #000; --button-text-primary: #000; }
-body:has(#option-g:checked) { --primary-500: #ff1a7a; --primary-400: #ff3c8e; --primary-300: #ff5fa2; --font: "Dosis"; --default-bg: #2e1a37; --paper: #452b51; --body-text: #fff; 
---error-dark:#AE000C;
-    --error-mid:#E62C39;
-    --error-light:#FFE3E5;
 
-    --warning-dark:#AA5F17;
-    --warning-mid:#FF7A00;
-    --warning-light:#FFEDDC;
-
-    --success-dark:#087E29;
-    --success-mid:#42C867;
-    --success-light:#E9FFEF;
-    
-    --info-dark:#1618D3;
-    --info-mid:#5478FB;
-    --info-light:#E9EEFF;
-        
-    --bg-top: var(--primary-400);
-    --bg-bottom: var(--primary-300);
-
+/* Pink Casino */
+body:has(#option-g:checked) { 
+    --primary-500: #ff1a7a; 
+    --primary-400: #ff3c8e; 
+    --primary-300: #ff5fa2; 
+    --font: "Dosis"; 
+    --default-bg: #2e1a37; 
+    --paper: #452b51; 
+    --body-text: #fff; 
+    --button-text-primary: #fff;
 }
 
-/*BetUK*/
-body:has(#option-h:checked) { --primary-500: #e61629; --primary-400: #ea3949; --primary-300: #ee5c69; --font: "Barlow Condensed"; --default-bg: #e8eef4; --body-text: #002e52; 
---error-dark:#B2000C;
-    --error-mid:#E62C39;
-    --error-light:#FFF2F3;
-
-    --warning-dark:#B15500;
-    --warning-mid:#FF7A00;
-    --warning-light:#FCF3EA;
-
-    --success-dark:#008123;
-    --success-mid:#42C867;
-    --success-light:#ECFFF1;
-
-    --info-dark:#0058B9;
-    --info-mid:#3696FF;
-    --info-light:#ECF5FF;
-    
-    --bg-top: var(--primary-400);
-    --bg-bottom: var(--primary-300);
-
-}
-/*21 UK*/
-body:has(#option-i:checked) { --primary-500: #00d0f4; --primary-400: #26d7f6; --primary-300: #4ddef7; --font: "Montserrat"; --default-bg: #1a222d; --paper: #000; --body-text: #fff; 
---error-dark:#A3000F;
-    --error-mid:#FF4A5B;
-    --error-light:#FFE3E5;
-
-    --warning-dark:#934C09;
-    --warning-mid:#FF8A1A;
-    --warning-light:#FFEDDC;
-
-    --success-dark:#037031;
-    --success-mid:#38D47A;
-    --success-light:#E9FFEF;
-
-    --info-dark:#00629A;
-    --info-mid:#00D0F4;
-    --info-light:#E9EEFF;
-    
-    --bg-top: var(--primary-400);
-    --bg-bottom: var(--primary-300);
-
+/* BetUK */
+body:has(#option-h:checked) { 
+    --primary-500: #e61629; 
+    --primary-400: #ea3949; 
+    --primary-300: #ee5c69; 
+    --font: "Barlow Condensed"; 
+    --default-bg: #e8eef4; 
+    --body-text: #002e52; 
+    --button-text-primary: #fff;
 }
 
-/*Slot Boss*/
-body:has(#option-j:checked) { --primary-500: #9bc449; --primary-400: #aacd64; --primary-300: #b9d680; --font: "Montserrat"; --default-bg: #eef3f3;
-    --error-dark:#B60919;
-    --error-mid:#FF4A5B;
-    --error-light:#FFEFF1;
+/* 21 UK */
+body:has(#option-i:checked) { 
+    --primary-500: #00d0f4; 
+    --primary-400: #26d7f6; 
+    --primary-300: #4ddef7; 
+    --font: "Montserrat"; 
+    --default-bg: #1a222d; 
+    --paper: #000; 
+    --body-text: #fff; 
+    --button-text-primary: #000;
+}
 
-    --warning-dark:#AA5F17;
-    --warning-mid:#FF8A1A;
-    --warning-light:#FCF3EA;
-
-    --success-dark:#547B06;
-    --success-mid:#90BC38;
-    --success-light:#F5FDE6;
-    
-    --info-dark:#1618D3;
-    --info-mid:#5478FB;
-    --info-light:#E9EEFF;
-    
-    --bg-top: var(--primary-400);
-    --bg-bottom: var(--primary-300);
-
- }
+/* Slot Boss */
+body:has(#option-j:checked) { 
+    --primary-500: #9bc449; 
+    --primary-400: #aacd64; 
+    --primary-300: #b9d680; 
+    --font: "Montserrat"; 
+    --default-bg: #eef3f3;
+    --button-text-primary: #000;
+}
